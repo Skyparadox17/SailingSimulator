@@ -138,7 +138,6 @@ class SailingSimulator(ShowBase):
     def getExpires(self, obj):
         return obj.getPythonTag("expires")
 
-
     # This is our main task function, which does all of the per-frame
     # processing.  It takes in self like all functions in a class, and task,
     # the task object returned by taskMgr.
