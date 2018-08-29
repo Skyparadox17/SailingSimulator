@@ -78,15 +78,14 @@ def loadObject(tex=None, pos=LPoint3(0, 0), depth=SPRITE_POS, scale=1,
 
 
 
-class AsteroidsDemo(ShowBase):
+class SailingSimulator(ShowBase):
 
     def __init__(self):
         # Initialize the ShowBase class from which we inherit, which will
         # create a window and set up everything we need for rendering into it.
         ShowBase.__init__(self)
 
-
-        # Disable default mouse-based camera control.  This is a method on the
+        # Disable default mouse-based camera control. This is a method on the
         # ShowBase class from which we inherit.
         self.disableMouse()
 
@@ -96,7 +95,7 @@ class AsteroidsDemo(ShowBase):
                              transparency=False)
 
         # Load the ship and set its initial velocity.
-        self.ship = loadObject("sailing_ship.png",scale=3)
+        self.ship = loadObject("sailing_ship.png", scale=3)
         self.setVelocity(self.ship, LVector3.zero())
 
         # A dictionary of what keys are currently being pressed
@@ -120,15 +119,7 @@ class AsteroidsDemo(ShowBase):
         # argument is the name for the task.  It returns a task object which
         # is passed to the function each frame.
         self.gameTask = taskMgr.add(self.gameLoop, "gameLoop")
-
-        # Stores the time at which the next bullet may be fired.
-        self.nextBullet = 0.0
-
-        # This list will stored fired bullets.
-        self.bullets = []
-
-        # Complete initialization by spawning the asteroids.
-        self.spawnAsteroids()
+        self.finished=False
 
     # As described earlier, this simply sets a key in the self.keys dictionary
     # to the given value.
@@ -147,34 +138,6 @@ class AsteroidsDemo(ShowBase):
     def getExpires(self, obj):
         return obj.getPythonTag("expires")
 
-    def spawnAsteroids(self):
-        # Control variable for if the ship is alive
-        self.alive = True
-        self.asteroids = []  # List that will contain our asteroids
-
-        for i in range(10):
-            # This loads an asteroid. The texture chosen is random
-            # from "asteroid1.png" to "asteroid3.png".
-            asteroid = loadObject("asteroid%d.png" % (randint(1, 3)),
-                                  scale=AST_INIT_SCALE)
-            self.asteroids.append(asteroid)
-
-            # This is kind of a hack, but it keeps the asteroids from spawning
-            # near the player.  It creates the list (-20, -19 ... -5, 5, 6, 7,
-            # ... 20) and chooses a value from it. Since the player starts at 0
-            # and this list doesn't contain anything from -4 to 4, it won't be
-            # close to the player.
-            asteroid.setX(choice(tuple(range(-SCREEN_X, -5)) + tuple(range(5, SCREEN_X))))
-            # Same thing for Y
-            asteroid.setZ(choice(tuple(range(-SCREEN_Y, -5)) + tuple(range(5, SCREEN_Y))))
-
-            # Heading is a random angle in radians
-            heading = random() * 2 * pi
-
-            # Converts the heading to a vector and multiplies it by speed to
-            # get a velocity vector
-            v = LVector3(sin(heading), 0, cos(heading)) * AST_INIT_VEL
-            self.setVelocity(self.asteroids[i], v)
 
     # This is our main task function, which does all of the per-frame
     # processing.  It takes in self like all functions in a class, and task,
@@ -188,95 +151,18 @@ class AsteroidsDemo(ShowBase):
         # signify that the task should continue running. If Task.done were
         # returned instead, the task would be removed and would no longer be
         # called every frame.
-        if not self.alive:
+        if self.finished:
             return Task.cont
 
         # update ship position
         self.updateShip(dt)
 
-        # check to see if the ship can fire
-        if self.keys["fire"] and task.time > self.nextBullet:
-            self.fire(task.time)  # If so, call the fire function
-            # And disable firing for a bit
-            self.nextBullet = task.time + BULLET_REPEAT
-        # Remove the fire flag until the next spacebar press
-        self.keys["fire"] = 0
-
-        # update asteroids
-        for obj in self.asteroids:
-            self.updatePos(obj, dt)
-
-        # update bullets
-        newBulletArray = []
-        for obj in self.bullets:
-            self.updatePos(obj, dt)  # Update the bullet
-            # Bullets have an experation time (see definition of fire)
-            # If a bullet has not expired, add it to the new bullet list so
-            # that it will continue to exist.
-            if self.getExpires(obj) > task.time:
-                newBulletArray.append(obj)
-            else:
-                obj.removeNode()  # Otherwise, remove it from the scene.
-        # Set the bullet array to be the newly updated array
-        self.bullets = newBulletArray
-
-        # Check bullet collision with asteroids
-        # In short, it checks every bullet against every asteroid. This is
-        # quite slow.  A big optimization would be to sort the objects left to
-        # right and check only if they overlap.  Framerate can go way down if
-        # there are many bullets on screen, but for the most part it's okay.
-        for bullet in self.bullets:
-            # This range statement makes it step though the asteroid list
-            # backwards.  This is because if an asteroid is removed, the
-            # elements after it will change position in the list.  If you go
-            # backwards, the length stays constant.
-            for i in range(len(self.asteroids) - 1, -1, -1):
-                asteroid = self.asteroids[i]
-                # Panda's collision detection is more complicated than we need
-                # here.  This is the basic sphere collision check. If the
-                # distance between the object centers is less than sum of the
-                # radii of the two objects, then we have a collision. We use
-                # lengthSquared() since it is faster than length().
-                if ((bullet.getPos() - asteroid.getPos()).lengthSquared() <
-                    (((bullet.getScale().getX() + asteroid.getScale().getX())
-                      * .5) ** 2)):
-                    # Schedule the bullet for removal
-                    self.setExpires(bullet, 0)
-                    self.asteroidHit(i)      # Handle the hit
-
-        # Now we do the same collision pass for the ship
-        shipSize = self.ship.getScale().getX()
-        for ast in self.asteroids:
-            # Same sphere collision check for the ship vs. the asteroid
-            if ((self.ship.getPos() - ast.getPos()).lengthSquared() <
-                    (((shipSize + ast.getScale().getX()) * .5) ** 2)):
-                # If there is a hit, clear the screen and schedule a restart
-                self.alive = False         # Ship is no longer alive
-                # Remove every object in asteroids and bullets from the scene
-                for i in self.asteroids + self.bullets:
-                    i.removeNode()
-                self.bullets = []          # Clear the bullet list
-                self.ship.hide()           # Hide the ship
-                # Reset the velocity
-                self.setVelocity(self.ship, LVector3(0, 0, 0))
-                Sequence(Wait(2),          # Wait 2 seconds
-                         Func(self.ship.setR, 0),  # Reset heading
-                         Func(self.ship.setX, 0),  # Reset position X
-                         # Reset position Y (Z for Panda)
-                         Func(self.ship.setZ, 0),
-                         Func(self.ship.show),     # Show the ship
-                         Func(self.spawnAsteroids)).start()  # Remake asteroids
-                return Task.cont
-
-        # If the player has successfully destroyed all asteroids, respawn them
-        if len(self.asteroids) == 0:
-            self.spawnAsteroids()
-
-        return Task.cont    # Since every return is Task.cont, the task will
+        # Since every return is Task.cont, the task will
+        return Task.cont
         # continue indefinitely
 
     # Updates the positions of objects
-    def updatePos(self, obj, dt):
+    def update_pos(self, obj, dt):
         vel = self.getVelocity(obj)
         newPos = obj.getPos() + (vel * dt)
 
@@ -292,39 +178,6 @@ class AsteroidsDemo(ShowBase):
             newPos.setZ(SCREEN_Y)
 
         obj.setPos(newPos)
-
-    # The handler when an asteroid is hit by a bullet
-    def asteroidHit(self, index):
-        # If the asteroid is small it is simply removed
-        if self.asteroids[index].getScale().getX() <= AST_MIN_SCALE:
-            self.asteroids[index].removeNode()
-            # Remove the asteroid from the list of asteroids.
-            del self.asteroids[index]
-        else:
-            # If it is big enough, divide it up into little asteroids.
-            # First we update the current asteroid.
-            asteroid = self.asteroids[index]
-            newScale = asteroid.getScale().getX() * AST_SIZE_SCALE
-            asteroid.setScale(newScale)  # Rescale it
-
-            # The new direction is chosen as perpendicular to the old direction
-            # This is determined using the cross product, which returns a
-            # vector perpendicular to the two input vectors.  By crossing
-            # velocity with a vector that goes into the screen, we get a vector
-            # that is orthagonal to the original velocity in the screen plane.
-            vel = self.getVelocity(asteroid)
-            speed = vel.length() * AST_VEL_SCALE
-            vel.normalize()
-            vel = LVector3(0, 1, 0).cross(vel)
-            vel *= speed
-            self.setVelocity(asteroid, vel)
-
-            # Now we create a new asteroid identical to the current one
-            newAst = loadObject(scale=newScale)
-            self.setVelocity(newAst, vel * -1)
-            newAst.setPos(asteroid.getPos())
-            newAst.setTexture(asteroid.getTexture(), 1)
-            self.asteroids.append(newAst)
 
     # This updates the ship's position. This is similar to the general update
     # but takes into account turn and thrust
@@ -357,27 +210,9 @@ class AsteroidsDemo(ShowBase):
             self.setVelocity(self.ship, newVel)
 
         # Finally, update the position as with any other object
-        self.updatePos(self.ship, dt)
-
-    # Creates a bullet and adds it to the bullet list
-    def fire(self, time):
-        direction = DEG_TO_RAD * self.ship.getR()
-        pos = self.ship.getPos()
-        bullet = loadObject("bullet.png", scale=.2)  # Create the object
-        bullet.setPos(pos)
-        # Velocity is in relation to the ship
-        vel = (self.getVelocity(self.ship) +
-               (LVector3(sin(direction), 0, cos(direction)) *
-                BULLET_SPEED))
-        self.setVelocity(bullet, vel)
-        # Set the bullet expiration time to be a certain amount past the
-        # current time
-        self.setExpires(bullet, time + BULLET_LIFE)
-
-        # Finally, add the new bullet to the list
-        self.bullets.append(bullet)
+        self.update_pos(self.ship, dt)
 
 # We now have everything we need. Make an instance of the class and start
 # 3D rendering
-demo = AsteroidsDemo()
-demo.run()
+sailingSimulator = SailingSimulator()
+sailingSimulator.run()
