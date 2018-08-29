@@ -77,12 +77,6 @@ def loadObject(tex=None, pos=LPoint3(0, 0), depth=SPRITE_POS, scale=1,
     return obj
 
 
-# Macro-like function used to reduce the amount to code needed to create the
-# on screen instructions
-def genLabelText(text, i):
-    return OnscreenText(text=text, parent=base.a2dTopLeft, pos=(0.07, -.06 * i - 0.1),
-                        fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.05)
-
 
 class AsteroidsDemo(ShowBase):
 
@@ -91,16 +85,6 @@ class AsteroidsDemo(ShowBase):
         # create a window and set up everything we need for rendering into it.
         ShowBase.__init__(self)
 
-        # This code puts the standard title and instruction text on screen
-        self.title = OnscreenText(text="Panda3D: Tutorial - Tasks",
-                                  parent=base.a2dBottomRight, scale=.07,
-                                  align=TextNode.ARight, pos=(-0.1, 0.1),
-                                  fg=(1, 1, 1, 1), shadow=(0, 0, 0, 0.5))
-        self.escapeText = genLabelText("ESC: Quit", 0)
-        self.leftkeyText = genLabelText("[Left Arrow]: Turn Left (CCW)", 1)
-        self.rightkeyText = genLabelText("[Right Arrow]: Turn Right (CW)", 2)
-        self.upkeyText = genLabelText("[Up Arrow]: Accelerate", 3)
-        self.spacekeyText = genLabelText("[Space Bar]: Fire", 4)
 
         # Disable default mouse-based camera control.  This is a method on the
         # ShowBase class from which we inherit.
@@ -108,11 +92,11 @@ class AsteroidsDemo(ShowBase):
 
         # Load the background starfield.
         self.setBackgroundColor((0, 0, 0, 1))
-        self.bg = loadObject("stars.jpg", scale=146, depth=200,
+        self.bg = loadObject("water.jpg", scale=146, depth=200,
                              transparency=False)
 
         # Load the ship and set its initial velocity.
-        self.ship = loadObject("ship.png")
+        self.ship = loadObject("sailing_ship.png",scale=3)
         self.setVelocity(self.ship, LVector3.zero())
 
         # A dictionary of what keys are currently being pressed
