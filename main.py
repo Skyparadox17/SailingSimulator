@@ -1,21 +1,10 @@
 #!/usr/bin/env python
 
-# Author: Shao Zhang, Phil Saltzman, and Greg Lindley
-# Last Updated: 2015-03-13
-#
-# This tutorial demonstrates the use of tasks. A task is a function that
-# gets called once every frame. They are good for things that need to be
-# updated very often. In the case of asteroids, we use tasks to update
-# the positions of all the objects, and to check if the bullets or the
-# ship have hit the asteroids.
-#
-# Note: This definitely a complicated example. Tasks are the cores of
-# most games so it seemed appropriate to show what a full game in Panda
-# could look like.
+# Author: Ella Norman
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import TextNode, TransparencyAttrib
-from panda3d.core import LPoint3, LVector3
+from panda3d.core import LPoint3, LVector3, NodePath
 from direct.gui.OnscreenText import OnscreenText
 from direct.task.Task import Task
 from math import sin, cos, pi
@@ -97,6 +86,26 @@ class SailingSimulator(ShowBase):
         # Load the ship and set its initial velocity.
         self.ship = loadObject("sailing_ship.png", scale=3)
         self.setVelocity(self.ship, LVector3.zero())
+
+        self.sailHolder = NodePath("sailHolder")
+        self.sailHolder.reparentTo(self.ship)
+        self.sailHolder.setPos(0, 0, 0.2)
+        self.sailHolder.setR(25)
+
+        # Load the sail into holder
+        self.sail = loadObject("sail2.png", scale=1, depth=50)
+        #self.setVelocity(self.sail, LVector3.zero())
+        self.sail.reparentTo(self.sailHolder)
+        self.sail.setPos(0, 0, -0.3)
+
+        self.rudderHolder = NodePath("rudderHolder")
+        self.rudderHolder.reparentTo(self.ship)
+        self.rudderHolder.setPos(0, 0, -0.4)
+
+        self.rudder = loadObject("sail2.png", scale=.4)
+        self.rudder.reparentTo(self.rudderHolder)
+        self.rudder.setPos(0, 0, -0.1)
+        self.rudderHolder.setR(-25)
 
         # A dictionary of what keys are currently being pressed
         # The key events update this list, and our task will query it as input
