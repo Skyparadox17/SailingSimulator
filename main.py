@@ -9,6 +9,8 @@ from direct.gui.OnscreenText import OnscreenText
 from direct.task.Task import Task
 from math import sin, cos, pi
 import sys
+from pandac.PandaModules import *
+from direct.showutil.Rope import Rope
 
 # Constants that will control the behavior of the game. It is good to
 # group constants like this so that they can be changed once without
@@ -19,7 +21,7 @@ SCREEN_X = 20       # Screen goes from -20 to 20 on X
 SCREEN_Y = 15       # Screen goes from -15 to 15 on Y
 TURN_RATE = 360     # Degrees ship can turn in 1 second
 ACCELERATION = 10   # Ship acceleration in units/sec/sec
-MAX_VEL = 6         # Maximum ship velocity in units/sec
+MAX_VEL = 10         # Maximum ship velocity in units/sec
 MAX_VEL_SQ = MAX_VEL ** 2  # Square of the ship velocity
 DEG_TO_RAD = pi / 180  # translates degrees to radians for sin and cos
 
@@ -39,7 +41,7 @@ def loadObject(tex=None, pos=LPoint3(0, 0), depth=SPRITE_POS, scale=1,
     # This tells Panda not to worry about the order that things are drawn in
     # (ie. disable Z-testing).  This prevents an effect known as Z-fighting.
     obj.setBin("unsorted", 0)
-    obj.setDepthTest(False)
+    obj.setDepthTest(True)
 
     if transparency:
         # Enable transparency blending.
@@ -65,14 +67,24 @@ class SailingSimulator(ShowBase):
         # ShowBase class from which we inherit.
         self.disableMouse()
 
-        # Load the background starfield.
+        # Setting the background to 'water'
         self.setBackgroundColor((0, 0, 0, 1))
         self.bg = loadObject("water.jpg", scale=146, depth=200,
                              transparency=False)
 
+        self.gbuoy = loadObject("Green_buoy.png", scale=4, depth=50)
+        self.setVelocity(self.gbuoy, LVector3.zero())
+        self.gbuoy.setPos(-7, 50, 7)
+
+        self.rbuoy = loadObject("Red_buoy.png", scale=4, depth=50)
+        self.setVelocity(self.rbuoy, LVector3.zero())
+        self.rbuoy.setPos(2, 50, -4)
+
+
         # Load the ship and set its initial velocity.
-        self.ship = loadObject("sailing_ship.png", scale=3)
+        self.ship = loadObject("sailing_ship.png", scale=3, depth=50)
         self.setVelocity(self.ship, LVector3.zero())
+        self.ship.setPos(-16, 50, 0)
 
         self.sailHolder = NodePath("sailHolder")
         self.sailHolder.reparentTo(self.ship)
@@ -80,7 +92,7 @@ class SailingSimulator(ShowBase):
         #self.sailHolder.setR(25)
 
         # Load the sail into holder
-        self.sail = loadObject("sail2.png", scale=1, depth=50)
+        self.sail = loadObject("sail2.png", scale=1, depth=0)
         self.sail.reparentTo(self.sailHolder)
         self.sail.setPos(0, 0, -0.3)
 
@@ -88,10 +100,25 @@ class SailingSimulator(ShowBase):
         self.rudderHolder.reparentTo(self.ship)
         self.rudderHolder.setPos(0, 0, -0.4)
 
-        self.rudder = loadObject("sail2.png", scale=.4)
+        self.rudder = loadObject("sail2.png", scale=0.4, depth=0)
         self.rudder.reparentTo(self.rudderHolder)
         self.rudder.setPos(0, 0, -0.1)
         #self.rudderHolder.setR(-25)
+
+        r = Rope()
+        r.setup(4, [(None, (-18, 0, 0)),
+                    (None, (-8, 0, -20)),
+                    (None, (-15, 0, 15)),
+                    (None, (0, 0, 10)),
+                    (None, (0, 0, -25)),
+                    (None, (10, 0, 10)),
+                    (None, (10, 0, 10)),
+                    (None, (15, 0, -10))
+                    ])
+        r.ropeNode.setThickness(10)
+        r.setPos(0, 55, 0)
+        r.reparentTo(camera)
+
 
         # A dictionary of what keys are currently being pressed
         # The key events update this list, and our task will query it as input
