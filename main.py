@@ -13,7 +13,7 @@ from pandac.PandaModules import *
 from direct.showutil.Rope import Rope
 from direct.gui.DirectGui import *
 from sail import Sail
-
+from math import radians
 
 # Constants that will control the behavior of the game. It is good to
 # group constants like this so that they can be changed once without
@@ -85,9 +85,10 @@ class SailingSimulator(ShowBase):
         self.setVelocity(self.rbuoy, LVector3.zero())
         self.rbuoy.setPos(2, 50, -4)
 
-        self.arrow = loadObject("arrow.png", scale=2, depth=50)
-        self.setVelocity(self.arrow, LVector3.zero())
-        self.arrow.setPos(11, 50, 11)
+        self.wind_direction = loadObject("arrow.png", scale=2, depth=50)
+        #self.setVelocity(self.arrow, LVector3.zero())
+        self.wind_direction.setPos(11, 50, 11)
+        self.wind_direction.setR(90)
 
 
         # Load the ship and set its initial velocity.
@@ -252,8 +253,29 @@ class SailingSimulator(ShowBase):
     def updateShip(self, dt):
         heading = self.ship.getR()  # Heading is the roll value for this model
 
+        windHeading = self.wind_direction.getR()
+        windStrength = self.wind_strength['value']
         mainSheetLength = self.main_sheet_length['value']
 
+        pos = self.ship.getPos()
+
+        [boatVelocity, sailAngle] = self.sailBoat.update((windStrength + .000001) / 1000.0, radians(windHeading),
+                                                         mainSheetLength, radians(heading), pos.x, pos.z)
+        self.sailHolder.setR(sailAngle)
+
+        heading_rad = DEG_TO_RAD * heading
+        # This builds a new velocity vector and adds it to the current one
+        # relative to the camera, the screen in Panda is the XZ plane.
+        # Therefore all of our Y values in our velocities are 0 to signify
+        # no change in that direction.
+        newVel = LVector3(sin(heading_rad), 0, cos(heading_rad)) * boatVelocity * dt
+        # newVel += (self.getVelocity(self.ship)*.99)
+        if newVel.lengthSquared() > MAX_VEL_SQ:
+            newVel.normalize()
+            newVel *= MAX_VEL
+        self.setVelocity(self.ship, newVel)
+
+       # self.velocityText.setText("Boat Velocity: " + str(round(newVel.lengthSquared(), 2)))
         # Change heading if left or right is being pressed
         if self.keys["turnRight"]:
             heading += dt * TURN_RATE
