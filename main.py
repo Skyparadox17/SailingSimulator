@@ -11,6 +11,7 @@ from math import sin, cos, pi
 import sys
 from pandac.PandaModules import *
 from direct.showutil.Rope import Rope
+from direct.gui.DirectGui import *
 
 # Constants that will control the behavior of the game. It is good to
 # group constants like this so that they can be changed once without
@@ -80,6 +81,10 @@ class SailingSimulator(ShowBase):
         self.setVelocity(self.rbuoy, LVector3.zero())
         self.rbuoy.setPos(2, 50, -4)
 
+        self.arrow = loadObject("arrow.png", scale=2, depth=50)
+        self.setVelocity(self.arrow, LVector3.zero())
+        self.arrow.setPos(11, 50, 11)
+
 
         # Load the ship and set its initial velocity.
         self.ship = loadObject("sailing_ship.png", scale=3, depth=50)
@@ -105,6 +110,33 @@ class SailingSimulator(ShowBase):
         self.rudder.setPos(0, 0, -0.1)
         #self.rudderHolder.setR(-25)
 
+        #coding in on screen text
+        self.wind_strength = DirectSlider(range=(0, 100), value=10, command=self.show_wind_strength,
+                                          pos=LPoint3(1, 1, 0.9), scale=0.2)
+        self.wind_strength_text = OnscreenText(text=str(int(self.wind_strength['value'])), parent=base.a2dTopLeft,
+                                               pos=(2.2, -.06 * 2 - 0.1),
+                                               fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1)
+
+        self.main_sheet_length = DirectSlider(range=(0, 100), value=10, command=self.show_main_sheet_length,
+                                              pos=LPoint3(.3, 1, 0.9),
+                                              scale=0.2)
+
+        self.main_sheet_length_text = OnscreenText(text=str(int(self.main_sheet_length['value'])),
+                                                   parent=base.a2dTopLeft,
+                                                   pos=(1.5, -.06 * 2 - 0.1),
+                                                   fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5),
+                                                   scale=.1)
+
+        self.velocityText = OnscreenText(text="Velocity: 0", parent=base.a2dTopLeft,
+                                         pos=(0.04, -.06 * 1 - 0.1),
+                                         fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
+                                         mayChange=True)
+        self.scoreText = OnscreenText(text="Score: 0", parent=base.a2dTopLeft,
+                                      pos=(0.07, -.06 * 3 - 0.1),
+                                      fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
+                                      mayChange=True)
+
+
         r = Rope()
         r.setup(4, [(None, (-18, 0, 0)),
                     (None, (-8, 0, -20)),
@@ -123,7 +155,7 @@ class SailingSimulator(ShowBase):
         # A dictionary of what keys are currently being pressed
         # The key events update this list, and our task will query it as input
         self.keys = {"turnLeft": 0, "turnRight": 0,
-                     "accel": 0, "fire": 0}
+                     "accel": 0, "fire": 0, "main_sheet_left: ": 0, "main_sheet_right": 0}
 
         self.accept("escape", sys.exit)  # Escape quits
         # Other keys events set the appropriate value in our key dictionary
@@ -135,6 +167,11 @@ class SailingSimulator(ShowBase):
         self.accept("arrow_up-up",    self.setKey, ["accel", 0])
         self.accept("space",          self.setKey, ["fire", 1])
 
+        self.accept("e",   self.setKey, ["main_sheet_left", 1])
+        self.accept("e-up", self.setKey, ["main_sheet_left", 0])
+        self.accept("r", self.setKey, ["main_sheet_right", 1])
+        self.accept("r-up", self.setKey, ["main_sheet_right", 0])
+
         # Now we create the task. taskMgr is the task manager that actually
         # calls the function each frame. The add method creates a new task.
         # The first argument is the function to be called, and the second
@@ -142,6 +179,16 @@ class SailingSimulator(ShowBase):
         # is passed to the function each frame.
         self.gameTask = taskMgr.add(self.gameLoop, "gameLoop")
         self.finished=False
+
+    def show_wind_strength(self):
+        self.wind_strength_text['text'] = "Wind:" + str(int(self.wind_strength['value']))
+
+    def show_main_sheet_length(self):
+        self.main_sheet_length_text['text'] = "Main: " + str(int(self.main_sheet_length['value']))
+
+    def show_score(self):
+        self.scoreText['text'] = "Score: " + str(int(self.score))
+
 
     # As described earlier, this simply sets a key in the self.keys dictionary
     # to the given value.
