@@ -12,6 +12,8 @@ import sys
 from pandac.PandaModules import *
 from direct.showutil.Rope import Rope
 from direct.gui.DirectGui import *
+from sail import Sail
+
 
 # Constants that will control the behavior of the game. It is good to
 # group constants like this so that they can be changed once without
@@ -64,6 +66,8 @@ class SailingSimulator(ShowBase):
         # create a window and set up everything we need for rendering into it.
         ShowBase.__init__(self)
 
+        self.sailBoat = Sail()
+
         # Disable default mouse-based camera control. This is a method on the
         # ShowBase class from which we inherit.
         self.disableMouse()
@@ -87,7 +91,7 @@ class SailingSimulator(ShowBase):
 
 
         # Load the ship and set its initial velocity.
-        self.ship = loadObject("sailing_ship.png", scale=3, depth=50)
+        self.ship = loadObject("sailing_ship.png", scale=3)
         self.setVelocity(self.ship, LVector3.zero())
         self.ship.setPos(-16, 50, 0)
 
@@ -97,9 +101,9 @@ class SailingSimulator(ShowBase):
         #self.sailHolder.setR(25)
 
         # Load the sail into holder
-        self.sail = loadObject("sail2.png", scale=1, depth=0)
+        self.sail = loadObject("sail2.png", scale=0.9)
         self.sail.reparentTo(self.sailHolder)
-        self.sail.setPos(0, 0, -0.3)
+        self.sail.setPos(0, -0.1, -0.3)
 
         self.rudderHolder = NodePath("rudderHolder")
         self.rudderHolder.reparentTo(self.ship)
@@ -155,7 +159,7 @@ class SailingSimulator(ShowBase):
         # A dictionary of what keys are currently being pressed
         # The key events update this list, and our task will query it as input
         self.keys = {"turnLeft": 0, "turnRight": 0,
-                     "accel": 0, "fire": 0, "main_sheet_left: ": 0, "main_sheet_right": 0}
+                     "accel": 0, "fire": 0, "main_sheet_left": 0, "main_sheet_right": 0}
 
         self.accept("escape", sys.exit)  # Escape quits
         # Other keys events set the appropriate value in our key dictionary
@@ -244,8 +248,12 @@ class SailingSimulator(ShowBase):
 
     # This updates the ship's position. This is similar to the general update
     # but takes into account turn and thrust
+
     def updateShip(self, dt):
         heading = self.ship.getR()  # Heading is the roll value for this model
+
+        mainSheetLength = self.main_sheet_length['value']
+
         # Change heading if left or right is being pressed
         if self.keys["turnRight"]:
             heading += dt * TURN_RATE
@@ -253,6 +261,14 @@ class SailingSimulator(ShowBase):
         elif self.keys["turnLeft"]:
             heading -= dt * TURN_RATE
             self.ship.setR(heading % 360)
+
+        if self.keys["main_sheet_left"]:
+            mainSheetLength -= dt * 10
+            self.main_sheet_length['value'] = mainSheetLength
+        elif self.keys["main_sheet_right"]:
+            mainSheetLength += dt * 10
+            self.main_sheet_length['value'] = mainSheetLength
+
 
         # Thrust causes acceleration in the direction the ship is currently
         # facing
