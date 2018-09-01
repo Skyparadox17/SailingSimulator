@@ -81,9 +81,22 @@ class SailingSimulator(ShowBase):
         self.setVelocity(self.gbuoy, LVector3.zero())
         self.gbuoy.setPos(-7, 50, 7)
 
+        self.sgbuoy = loadObject("Green_buoy.png", scale=4, depth=50)
+        self.setVelocity(self.sgbuoy, LVector3.zero())
+        self.sgbuoy.setPos(9, 50, 2)
+
         self.rbuoy = loadObject("Red_buoy.png", scale=4, depth=50)
         self.setVelocity(self.rbuoy, LVector3.zero())
-        self.rbuoy.setPos(2, 50, -4)
+        self.rbuoy.setPos(2, 50, -6)
+
+        self.land = loadObject("land.png", scale=16  , depth=50)
+        self.setVelocity(self.land, LVector3.zero())
+        self.land.setPos(-5, 50, -9)
+
+        self.sland = loadObject("land.png", scale=16, depth=50)
+        self.setVelocity(self.sland, LVector3.zero())
+        self.sland.setPos(3, 50, 9)
+        self.sland.setR(180)
 
         self.wind_direction = loadObject("arrow.png", scale=2, depth=50)
         #self.setVelocity(self.arrow, LVector3.zero())
