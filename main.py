@@ -1,19 +1,20 @@
-#!/usr/bin/env python
-
+# Sailing Simulator - A level coursework
 # Author: Ella Norman
 
+# ShowBase class loads most of the other Panda3D modules
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import TextNode, TransparencyAttrib
-from panda3d.core import LPoint3, LVector3, NodePath
-from direct.gui.OnscreenText import OnscreenText
 from direct.task.Task import Task
-from math import sin, cos, pi
+# importing maths for physics engine
+from math import sin, cos, pi, sqrt
 import sys
 from pandac.PandaModules import *
 from direct.showutil.Rope import Rope
-from direct.gui.DirectGui import *
 from sail import Sail
 from math import radians
+from direct.gui.OnscreenText import OnscreenText
+from direct.gui.DirectGui import *
+from panda3d.core import TextNode
+import sqlite3
 
 # Constants that will control the behavior of the game. It is good to
 # group constants like this so that they can be changed once without
@@ -27,6 +28,7 @@ ACCELERATION = 10   # Ship acceleration in units/sec/sec
 MAX_VEL = 10         # Maximum ship velocity in units/sec
 MAX_VEL_SQ = MAX_VEL ** 2  # Square of the ship velocity
 DEG_TO_RAD = pi / 180  # translates degrees to radians for sin and cos
+
 
 # This helps reduce the amount of code used by loading objects, since all of
 # the objects are pretty much the same.
@@ -58,10 +60,10 @@ def loadObject(tex=None, pos=LPoint3(0, 0), depth=SPRITE_POS, scale=1,
     return obj
 
 
-
+#start of class
 class SailingSimulator(ShowBase):
-
-    def __init__(self):
+    # __init__ is an object constructor
+    def __init__(self):   # self is a special variable which refers to the class of the object
         # Initialize the ShowBase class from which we inherit, which will
         # create a window and set up everything we need for rendering into it.
         ShowBase.__init__(self)
@@ -73,46 +75,56 @@ class SailingSimulator(ShowBase):
         self.disableMouse()
 
         # Setting the background to 'water'
+        # .self refers back to class(linking it) ensuring it's not just global
         self.setBackgroundColor((0, 0, 0, 1))
         self.bg = loadObject("water.jpg", scale=146, depth=200,
                              transparency=False)
 
+        # creating & positioning the green buoy
         self.gbuoy = loadObject("Green_buoy.png", scale=4, depth=50)
         self.setVelocity(self.gbuoy, LVector3.zero())
         self.gbuoy.setPos(-7, 50, 7)
 
+        # Second green buoy
         self.sgbuoy = loadObject("Green_buoy.png", scale=4, depth=50)
         self.setVelocity(self.sgbuoy, LVector3.zero())
-        self.sgbuoy.setPos(9, 50, 2)
+        self.sgbuoy.setPos(9, 50, 3)
 
+        # creating & positioning the red buoy
         self.rbuoy = loadObject("Red_buoy.png", scale=4, depth=50)
         self.setVelocity(self.rbuoy, LVector3.zero())
-        self.rbuoy.setPos(2, 50, -6)
+        self.rbuoy.setPos(2.5, 50, -6)
 
-        self.land = loadObject("land.png", scale=16  , depth=50)
-        self.setVelocity(self.land, LVector3.zero())
-        self.land.setPos(-5, 50, -9)
-
-        self.sland = loadObject("land.png", scale=16, depth=50)
+        # Importing land
+        self.sland = loadObject("land.png", scale = 16, depth = 50)
         self.setVelocity(self.sland, LVector3.zero())
-        self.sland.setPos(3, 50, 9)
+        self.sland.setPos(3,50,9)
         self.sland.setR(180)
 
+        self.land = loadObject("land.png", scale = 16, depth = 50)
+        self.setVelocity(self.land, LVector3.zero())
+        self.land.setPos(-5,50,-9)
+
+        # This 'sprite' shows the direction of the wind to the user
         self.wind_direction = loadObject("arrow.png", scale=2, depth=50)
-        #self.setVelocity(self.arrow, LVector3.zero())
+        # self.setVelocity(self.arrow, LVector3.zero())
         self.wind_direction.setPos(11, 50, 11)
         self.wind_direction.setR(90)
-
 
         # Load the ship and set its initial velocity.
         self.ship = loadObject("sailing_ship.png", scale=3)
         self.setVelocity(self.ship, LVector3.zero())
         self.ship.setPos(-16, 50, 0)
+        self.ship.setR(170)
 
+        # creates an empty sin-graph object
+        # the sail holder allows the sail to be slightly off set from the middle
+        # making it more realistic
+        # the actual sail is then parented to the sail holder
         self.sailHolder = NodePath("sailHolder")
         self.sailHolder.reparentTo(self.ship)
         self.sailHolder.setPos(0, 0, 0.2)
-        #self.sailHolder.setR(25)
+        # self.sailHolder.setR(25)
 
         # Load the sail into holder
         self.sail = loadObject("sail2.png", scale=0.9)
@@ -126,10 +138,10 @@ class SailingSimulator(ShowBase):
         self.rudder = loadObject("sail2.png", scale=0.4, depth=0)
         self.rudder.reparentTo(self.rudderHolder)
         self.rudder.setPos(0, 0, -0.1)
-        #self.rudderHolder.setR(-25)
+        # self.rudderHolder.setR(-25)
 
-        #coding in on screen text
-        self.wind_strength = DirectSlider(range=(0, 100), value=10, command=self.show_wind_strength,
+        # coding in on screen text
+        self.wind_strength = DirectSlider(range=(0, 100), value=12, command=self.show_wind_strength,
                                           pos=LPoint3(1, 1, 0.9), scale=0.2)
         self.wind_strength_text = OnscreenText(text=str(int(self.wind_strength['value'])), parent=base.a2dTopLeft,
                                                pos=(2.2, -.06 * 2 - 0.1),
@@ -154,7 +166,8 @@ class SailingSimulator(ShowBase):
                                       fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
                                       mayChange=True)
 
-
+        # the 'rope' is the white line that is the
+        # sailing course the user must follow
         r = Rope()
         r.setup(4, [(None, (-18, 0, 0)),
                     (None, (-8, 0, -20)),
@@ -169,14 +182,21 @@ class SailingSimulator(ShowBase):
         r.setPos(0, 55, 0)
         r.reparentTo(camera)
 
+        self.curve = r.ropeNode.getCurve()
+        self.curvePoints = r.getPoints(20)
+        print(self.curvePoints)
+
+        self.score = 10000
+
 
         # A dictionary of what keys are currently being pressed
         # The key events update this list, and our task will query it as input
         self.keys = {"turnLeft": 0, "turnRight": 0,
                      "accel": 0, "fire": 0, "main_sheet_left": 0, "main_sheet_right": 0}
 
-        self.accept("escape", sys.exit)  # Escape quits
+        self.accept("escape", sys.exit)  # Escape quits the simulator
         # Other keys events set the appropriate value in our key dictionary
+        # these keys control the movement of the sail boat
         self.accept("arrow_left",     self.setKey, ["turnLeft", 1])
         self.accept("arrow_left-up",  self.setKey, ["turnLeft", 0])
         self.accept("arrow_right",    self.setKey, ["turnRight", 1])
@@ -185,6 +205,7 @@ class SailingSimulator(ShowBase):
         self.accept("arrow_up-up",    self.setKey, ["accel", 0])
         self.accept("space",          self.setKey, ["fire", 1])
 
+        # these keys control the movement of the main sheet
         self.accept("e",   self.setKey, ["main_sheet_left", 1])
         self.accept("e-up", self.setKey, ["main_sheet_left", 0])
         self.accept("r", self.setKey, ["main_sheet_right", 1])
@@ -196,7 +217,32 @@ class SailingSimulator(ShowBase):
         # argument is the name for the task.  It returns a task object which
         # is passed to the function each frame.
         self.gameTask = taskMgr.add(self.gameLoop, "gameLoop")
-        self.finished=False
+        self.finished=True
+
+        self.startButton = DirectButton(text=("Start Game"), scale=0.09, command=self.startGame)
+
+    def show_score(self):
+        self.scoreText['text'] = "Score: " + str(int(self.score))
+
+    def startGame(self):
+            self.finished = False
+            self.startButton.hide()
+
+    def getDistanceToLine(self, pos):
+            smallestDist = 1000000000000
+
+            for pt in self.curvePoints:
+                dist = sqrt(abs(((pt.x - pos.x) * 2.0) + ((pt.z - pos.z) * 2.0)))
+                if dist < smallestDist:
+                    smallestDist = dist
+
+            return smallestDist
+
+    def nearLastPoint(self, pos):
+            lastPt = self.curvePoints[len(self.curvePoints) - 1]
+            dist = sqrt(abs(((lastPt.x - pos.x) * 2.0) + ((lastPt.z - pos.z) * 2.0)))
+
+            return dist
 
     def show_wind_strength(self):
         self.wind_strength_text['text'] = "Wind:" + str(int(self.wind_strength['value']))
@@ -272,6 +318,15 @@ class SailingSimulator(ShowBase):
 
         pos = self.ship.getPos()
 
+        dist = self.getDistanceToLine(pos)
+        if (not self.finished):
+            self.score -= dist
+
+        # print(self.nearLastPoint(pos))
+        if (self.nearLastPoint(pos) < 0.1):
+            print("****Finished****")
+            self.finished = True
+
         [boatVelocity, sailAngle] = self.sailBoat.update((windStrength + .000001) / 1000.0, radians(windHeading),
                                                          mainSheetLength, radians(heading), pos.x, pos.z)
         self.sailHolder.setR(sailAngle)
@@ -287,6 +342,7 @@ class SailingSimulator(ShowBase):
             newVel.normalize()
             newVel *= MAX_VEL
         self.setVelocity(self.ship, newVel)
+
 
        # self.velocityText.setText("Boat Velocity: " + str(round(newVel.lengthSquared(), 2)))
         # Change heading if left or right is being pressed
@@ -324,6 +380,8 @@ class SailingSimulator(ShowBase):
 
         # Finally, update the position as with any other object
         self.update_pos(self.ship, dt)
+        self.show_score()
+
 
 # We now have everything we need. Make an instance of the class and start
 # 3D rendering

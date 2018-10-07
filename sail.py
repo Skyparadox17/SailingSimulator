@@ -1,3 +1,5 @@
+# Physics engine - this creates the wind that steers the boat
+# reference from https://github.com/robotone2000/SailBoat/blob/master/sail.py
 from math import sin, cos, sqrt, pow, pi, atan2, degrees
 
 # Ported from https://github.com/rahil-p/SailSim/blob/master/js/sailbot.js
@@ -226,3 +228,5 @@ class Sail():
         self.boatVelocity = max(-.03, self.boatVelocity) # ad hoc adjustment
 
         return [self.boatVelocity*10000000, round(degrees(self.mainAngle),2)]
+
+
