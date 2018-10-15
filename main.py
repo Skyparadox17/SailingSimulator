@@ -16,16 +16,17 @@ from direct.gui.DirectGui import *
 from panda3d.core import TextNode
 import sqlite3
 
+
 # Constants that will control the behavior of the game. It is good to
 # group constants like this so that they can be changed once without
 # having to find everywhere they are used in code
-SPRITE_POS = 55     # At default field of view and a depth of 55, the screen
+SPRITE_POS = 55  # At default field of view and a depth of 55, the screen
 # dimensions is 40x30 units
-SCREEN_X = 20       # Screen goes from -20 to 20 on X
-SCREEN_Y = 15       # Screen goes from -15 to 15 on Y
-TURN_RATE = 360     # Degrees ship can turn in 1 second
-ACCELERATION = 10   # Ship acceleration in units/sec/sec
-MAX_VEL = 10         # Maximum ship velocity in units/sec
+SCREEN_X = 20  # Screen goes from -20 to 20 on X
+SCREEN_Y = 15  # Screen goes from -15 to 15 on Y
+TURN_RATE = 360  # Degrees ship can turn in 1 second
+ACCELERATION = 10  # Ship acceleration in units/sec/sec
+MAX_VEL = 10  # Maximum ship velocity in units/sec
 MAX_VEL_SQ = MAX_VEL ** 2  # Square of the ship velocity
 DEG_TO_RAD = pi / 180  # translates degrees to radians for sin and cos
 
@@ -60,15 +61,16 @@ def loadObject(tex=None, pos=LPoint3(0, 0), depth=SPRITE_POS, scale=1,
     return obj
 
 
-#start of class
+# start of class
 class SailingSimulator(ShowBase):
     # __init__ is an object constructor
-    def __init__(self):   # self is a special variable which refers to the class of the object
+    def __init__(self):  # self is a special variable which refers to the class of the object
         # Initialize the ShowBase class from which we inherit, which will
         # create a window and set up everything we need for rendering into it.
         ShowBase.__init__(self)
 
         self.sailBoat = Sail()
+        self.highScoreTextRow = [10]
 
         # Disable default mouse-based camera control. This is a method on the
         # ShowBase class from which we inherit.
@@ -96,14 +98,14 @@ class SailingSimulator(ShowBase):
         self.rbuoy.setPos(2.5, 50, -6)
 
         # Importing land
-        self.sland = loadObject("land.png", scale = 16, depth = 50)
+        self.sland = loadObject("land.png", scale=16, depth=50)
         self.setVelocity(self.sland, LVector3.zero())
-        self.sland.setPos(3,50,9)
+        self.sland.setPos(3, 50, 9)
         self.sland.setR(180)
 
-        self.land = loadObject("land.png", scale = 16, depth = 50)
+        self.land = loadObject("land.png", scale=16, depth=50)
         self.setVelocity(self.land, LVector3.zero())
-        self.land.setPos(-5,50,-9)
+        self.land.setPos(-5, 50, -9)
 
         # This 'sprite' shows the direction of the wind to the user
         self.wind_direction = loadObject("arrow.png", scale=2, depth=50)
@@ -157,12 +159,8 @@ class SailingSimulator(ShowBase):
                                                    fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5),
                                                    scale=.1)
 
-        self.velocityText = OnscreenText(text="Velocity: 0", parent=base.a2dTopLeft,
-                                         pos=(0.04, -.06 * 1 - 0.1),
-                                         fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
-                                         mayChange=True)
         self.scoreText = OnscreenText(text="Score: 0", parent=base.a2dTopLeft,
-                                      pos=(0.07, -.06 * 3 - 0.1),
+                                      pos=(0.04, -.06 * 1 - 0.1),
                                       fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
                                       mayChange=True)
 
@@ -183,10 +181,8 @@ class SailingSimulator(ShowBase):
         r.reparentTo(camera)
 
         self.curve = r.ropeNode.getCurve()
-        self.curvePoints = r.getPoints(20)
+        self.curvePoints = r.getPoints(50)
         print(self.curvePoints)
-
-        self.score = 10000
 
 
         # A dictionary of what keys are currently being pressed
@@ -197,16 +193,16 @@ class SailingSimulator(ShowBase):
         self.accept("escape", sys.exit)  # Escape quits the simulator
         # Other keys events set the appropriate value in our key dictionary
         # these keys control the movement of the sail boat
-        self.accept("arrow_left",     self.setKey, ["turnLeft", 1])
-        self.accept("arrow_left-up",  self.setKey, ["turnLeft", 0])
-        self.accept("arrow_right",    self.setKey, ["turnRight", 1])
+        self.accept("arrow_left", self.setKey, ["turnLeft", 1])
+        self.accept("arrow_left-up", self.setKey, ["turnLeft", 0])
+        self.accept("arrow_right", self.setKey, ["turnRight", 1])
         self.accept("arrow_right-up", self.setKey, ["turnRight", 0])
-        self.accept("arrow_up",       self.setKey, ["accel", 1])
-        self.accept("arrow_up-up",    self.setKey, ["accel", 0])
-        self.accept("space",          self.setKey, ["fire", 1])
+        self.accept("arrow_up", self.setKey, ["accel", 1])
+        self.accept("arrow_up-up", self.setKey, ["accel", 0])
+        self.accept("space", self.setKey, ["fire", 1])
 
         # these keys control the movement of the main sheet
-        self.accept("e",   self.setKey, ["main_sheet_left", 1])
+        self.accept("e", self.setKey, ["main_sheet_left", 1])
         self.accept("e-up", self.setKey, ["main_sheet_left", 0])
         self.accept("r", self.setKey, ["main_sheet_right", 1])
         self.accept("r-up", self.setKey, ["main_sheet_right", 0])
@@ -217,32 +213,62 @@ class SailingSimulator(ShowBase):
         # argument is the name for the task.  It returns a task object which
         # is passed to the function each frame.
         self.gameTask = taskMgr.add(self.gameLoop, "gameLoop")
-        self.finished=True
+        self.finished = True
 
         self.startButton = DirectButton(text=("Start Game"), scale=0.09, command=self.startGame)
+
+        self.showHighscoreTable()
+
+        self.restartGame()
+
+
+    def restartGame(self):
+        self.score = 10000
+        self.main_sheet_length['value'] = 10
+        self.ship.setPos(-16, 50, 0)
+        self.ship.setR(170)
+
+    def finishGame(self):
+        self.showHighscoreTable()
+
+    def showHighscoreTable(self):
+        highscoreList = self.getHighscores()
+
+        self.highscoreTextHeading = OnscreenText(text="Highscores", parent=base.a2dTopLeft,
+                                                 pos=(0.37, -.42),
+                                                 fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
+                                                 mayChange=True)
+        self.highScoreTextRow = []
+        for f in range(len(highscoreList)):
+            self.highScoreTextRow.append(
+                OnscreenText(text=highscoreList[f][0] + " " + str(int(highscoreList[f][1])), parent=base.a2dTopLeft,
+                             pos=(0.37, -.5 - (f * .08)),
+                             fg=(1, 1, 1, 1), align=TextNode.ALeft, shadow=(0, 0, 0, 0.5), scale=.1,
+                             mayChange=True))
 
     def show_score(self):
         self.scoreText['text'] = "Score: " + str(int(self.score))
 
     def startGame(self):
-            self.finished = False
-            self.startButton.hide()
+        self.restartGame()
+        self.finished = False
+        self.startButton.hide()
 
     def getDistanceToLine(self, pos):
-            smallestDist = 1000000000000
+        smallestDist = 1000000000000
 
-            for pt in self.curvePoints:
-                dist = sqrt(abs(((pt.x - pos.x) * 2.0) + ((pt.z - pos.z) * 2.0)))
-                if dist < smallestDist:
-                    smallestDist = dist
+        for pt in self.curvePoints:
+            dist = sqrt(((pt.x - pos.x) ** 2.0) + ((pt.z - pos.z) ** 2.0))
+            if dist < smallestDist:
+                smallestDist = dist
 
-            return smallestDist
+        return smallestDist
 
     def nearLastPoint(self, pos):
-            lastPt = self.curvePoints[len(self.curvePoints) - 1]
-            dist = sqrt(abs(((lastPt.x - pos.x) * 2.0) + ((lastPt.z - pos.z) * 2.0)))
+        lastPt = self.curvePoints[len(self.curvePoints) - 1]
+        dist = sqrt(abs(((lastPt.x - pos.x) ** 2.0) + ((lastPt.z - pos.z) ** 2.0)))
 
-            return dist
+        return dist
 
     def show_wind_strength(self):
         self.wind_strength_text['text'] = "Wind:" + str(int(self.wind_strength['value']))
@@ -252,7 +278,6 @@ class SailingSimulator(ShowBase):
 
     def show_score(self):
         self.scoreText['text'] = "Score: " + str(int(self.score))
-
 
     # As described earlier, this simply sets a key in the self.keys dictionary
     # to the given value.
@@ -265,7 +290,7 @@ class SailingSimulator(ShowBase):
     def getVelocity(self, obj):
         return obj.getPythonTag("velocity")
 
-   # This is our main task function, which does all of the per-frame
+    # This is our main task function, which does all of the per-frame
     # processing.  It takes in self like all functions in a class, and task,
     # the task object returned by taskMgr.
     def gameLoop(self, task):
@@ -278,6 +303,7 @@ class SailingSimulator(ShowBase):
         # returned instead, the task would be removed and would no longer be
         # called every frame.
         if self.finished:
+            self.startButton.show()
             return Task.cont
 
         # update ship position
@@ -306,6 +332,27 @@ class SailingSimulator(ShowBase):
 
         obj.setPos(newPos)
 
+    def insertNewscore(self, name, score):
+        # Insert user 1
+        cursor.execute('''INSERT INTO users(name,score) VALUES(?,?)''', (name, score))
+        print("New user score inserted")
+        db.commit()
+        self.keepTop5ScoresOnly()
+
+    def keepTop5ScoresOnly(self):
+        res = cursor.execute('''SELECT * FROM users order by score desc limit 5''')
+        results = res.fetchall()
+        if len(results) > 5:
+            lowestScore = results[len(results) - 1][2]
+            print (lowestScore)
+            cursor.execute('''DELETE FROM users WHERE score < ?''', (lowestScore,))
+
+    def getHighscores(self):
+        cursor = db.cursor()
+        res = cursor.execute('''SELECT * FROM users order by score desc limit 5 ''')
+        highscores = res.fetchall()
+        return highscores
+
     # This updates the ship's position. This is similar to the general update
     # but takes into account turn and thrust
 
@@ -320,12 +367,14 @@ class SailingSimulator(ShowBase):
 
         dist = self.getDistanceToLine(pos)
         if (not self.finished):
-            self.score -= dist
+            self.score -= (dist * dist)
 
         # print(self.nearLastPoint(pos))
-        if (self.nearLastPoint(pos) < 0.1):
-            print("****Finished****")
+        if (abs(self.nearLastPoint(pos)) < 1.5):
+            print("****Game finish****" + str(self.nearLastPoint(pos)))
             self.finished = True
+            self.insertNewscore("Name", self.score)
+        #print("Last: " + str(self.nearLastPoint(pos)))
 
         [boatVelocity, sailAngle] = self.sailBoat.update((windStrength + .000001) / 1000.0, radians(windHeading),
                                                          mainSheetLength, radians(heading), pos.x, pos.z)
@@ -343,8 +392,7 @@ class SailingSimulator(ShowBase):
             newVel *= MAX_VEL
         self.setVelocity(self.ship, newVel)
 
-
-       # self.velocityText.setText("Boat Velocity: " + str(round(newVel.lengthSquared(), 2)))
+        # self.velocityText.setText("Boat Velocity: " + str(round(newVel.lengthSquared(), 2)))
         # Change heading if left or right is being pressed
         if self.keys["turnRight"]:
             heading += dt * TURN_RATE
@@ -359,7 +407,6 @@ class SailingSimulator(ShowBase):
         elif self.keys["main_sheet_right"]:
             mainSheetLength += dt * 10
             self.main_sheet_length['value'] = mainSheetLength
-
 
         # Thrust causes acceleration in the direction the ship is currently
         # facing
@@ -382,6 +429,16 @@ class SailingSimulator(ShowBase):
         self.update_pos(self.ship, dt)
         self.show_score()
 
+
+db = sqlite3.connect('data.db')
+
+try:
+    cursor = db.cursor()
+    cursor.execute('''CREATE TABLE users(name TEXT, score NUMBER)''')
+    db.commit()
+    print("Table created")
+except:
+    print("Table already created")
 
 # We now have everything we need. Make an instance of the class and start
 # 3D rendering

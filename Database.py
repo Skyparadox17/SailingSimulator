@@ -4,9 +4,7 @@ db = sqlite3.connect('data.db')
 
 #Get a cursor object
 cursor = db.cursor()
- cursor.execute('''
-CREATE TABLE users(name TEXT,time TEXT, score NUMBER)
- ''')
+cursor.execute('''CREATE TABLE users(name TEXT, score NUMBER)''')
 db.commit()
 
 
@@ -26,12 +24,11 @@ while ans:
     if selection == 1:
         cursor = db.cursor()
         name1 = str(input("name: "))
-        time1 = str(input("time: "))
         score1 = str(input("score: "))
 
         # Insert user 1
-        cursor.execute('''INSERT INTO users(name,time, score)
-                          VALUES(?,?,?)''', (name1, time1, score1))
+        cursor.execute('''INSERT INTO users(name,score)
+                          VALUES(?,?,?)''', (name1, score1))
         print('User information inserted')
 
         db.commit()
@@ -67,4 +64,3 @@ while ans:
  #cursor = db.cursor()
  #cursor.execute('''DROP TABLE users''')
  #db.commit()
-
