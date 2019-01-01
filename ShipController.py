@@ -53,7 +53,7 @@ class ShipController:
         # A dictionary of what keys are currently being pressed
         # The key events update this list, and our task will query it as input
         self.keys = {"turnLeft": 0, "turnRight": 0,
-                     "accel": 0, "fire": 0, "main_sheet_left": 0, "main_sheet_right": 0}
+                    "main_sheet_left": 0, "main_sheet_right": 0}
 
         self.showbaseMain.accept("escape", sys.exit)  # Escape quits the simulator
         # Other keys events set the appropriate value in our key dictionary
@@ -62,9 +62,7 @@ class ShipController:
         self.showbaseMain.accept("arrow_left-up", self.setKey, ["turnLeft", 0])
         self.showbaseMain.accept("arrow_right", self.setKey, ["turnRight", 1])
         self.showbaseMain.accept("arrow_right-up", self.setKey, ["turnRight", 0])
-        self.showbaseMain.accept("arrow_up", self.setKey, ["accel", 1])
-        self.showbaseMain.accept("arrow_up-up", self.setKey, ["accel", 0])
-        self.showbaseMain.accept("space", self.setKey, ["fire", 1])
+
 
         # these keys control the movement of the main sheet
         self.showbaseMain.accept("e", self.setKey, ["main_sheet_left", 1])
@@ -172,23 +170,6 @@ class ShipController:
         elif self.keys["main_sheet_right"]:
             mainSheetLength += dt * 10
             self.showbaseMain.main_sheet_length['value'] = mainSheetLength
-
-        # Thrust causes acceleration in the direction the ship is currently
-        # facing
-        if self.keys["accel"]:
-            heading_rad = DEG_TO_RAD * heading
-            # This builds a new velocity vector and adds it to the current one
-            # relative to the camera, the screen in Panda is the XZ plane.
-            # Therefore all of our Y values in our velocities are 0 to signify
-            # no change in that direction.
-            newVel = LVector3(sin(heading_rad), 0, cos(heading_rad)) * ACCELERATION * dt
-            newVel += self.getVelocity(self.ship)
-            # Clamps the new velocity to the maximum speed. lengthSquared() is
-            # used again since it is faster than length()
-            if newVel.lengthSquared() > MAX_VEL_SQ:
-                newVel.normalize()
-                newVel *= MAX_VEL
-            self.setVelocity(self.ship, newVel)
 
         # Finally, update the position as with any other object
         self.update_pos(self.ship, dt)
